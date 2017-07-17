@@ -55,8 +55,6 @@ import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(T
 import XMonad.Layout.GridVariants (Grid(Grid))
 import XMonad.Layout.SimplestFloat
 import XMonad.Layout.OneBig
-import XMonad.Layout.ZoomRow --(zoomRow, zoomIn, zoomOut, zoomReset, ZoomMessage(ZoomFullToggle))
-import XMonad.Layout.IM (withIM, Property(Role))
 import XMonad.Layout.NoBorders
 
     -- Prompts
@@ -101,8 +99,7 @@ myKeys =
     -- windows hacks
         , ("M-<Right>",               sendMessage Shrink)
         , ("M-<Left>",               sendMessage Expand)
-        , ("M-<Down>;",             sendMessage zoomReset)
-        , ("M-<Up>",               sendMessage ZoomFullToggle)
+        , ("M-<Down>",               withFocused $ windows . W.sink)
 
     -- Apps
         , ("M-<Return>",        spawn "urxvt")
@@ -142,14 +139,14 @@ myStartupHook = do
           spawnOnce "~/bin/newbg &"
           spawnOnce dsp
 
-myLayoutHook =  smartBorders$ (vertical ||| centered ||| horizontal ||| grid ||| onebig ||| zoom)
+myLayoutHook =  smartBorders$ (vertical ||| centered ||| horizontal ||| grid ||| onebig ||| float)
     where 
         grid = padding 20 20 $  Grid (4/3)
         centered = padding 0 0 $ Full
         vertical = padding 20 20 $ Tall 3 (5/100) (50/100)
         horizontal = padding 20 20 $  Tall  1 (5/100) (4/10)
         onebig = padding 20 20 $ OneBig (3/4) (3/4)
-        zoom = padding 20 20 $ reflectVert zoomRow
+        float = padding 20 20 $ simplestFloat
       
 main = do
     xmonad       $  azertyConfig
