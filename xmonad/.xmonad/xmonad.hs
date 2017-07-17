@@ -82,6 +82,7 @@ myColorBrown    = "#c0b18b"
 myModMask       = mod4Mask
 myTerminal      = "urxvt"
 myMusic         = "spotify"
+myChat          = "msg"
 
 
 
@@ -107,9 +108,9 @@ myKeys =
         , ("M-<Space>",         spawn "rofi -show run")
         , ("M-l",               spawn "lockscr")
     -- Scratchpads
-        , ("M-<h>",          namedScratchpadAction scratchpads "music")
-        --, ("M-<[>",           scratchMusic)
-        --, ("M-<]>",           namedScratchpadAction myScratchpads "music")
+        , ("M-/",           namedScratchpadAction scratchpads "music")
+        , ("M-.",           namedScratchpadAction scratchpads "term")
+        , ("M-,",           namedScratchpadAction scratchpads "chat")
 
     ] 
 
@@ -117,17 +118,45 @@ myKeys =
     -- workspaces
 myWorkspaces = ["one", "two"]
 
-scratchpads = [
-    --NS "term" "gnome-terminal --hide-menubar --role=scratchpad" (role =? "scratchpad") (customFloating $ W.RationalRect (1/12) (1/12) (5/6) (5/6)),
-    --NS "irc" "gnome-terminal --role=irc" (role =? "irc") (customFloating $ W.RationalRect (1/12) (1/12) (5/6) (5/6)),
-    -- NS "applaunch" "xfce4-appfinder -c" (title =? "Application Finder") defaultFloating ,
-    NS "music" "spotify" (role =? "music") (customFloating $ W.RationalRect (1/2) (1/2) (1/2) (1/2))]
-        where role = stringProperty "WM_WINDOW_ROLE"
+
+scratchpads = [ NS "term" spawnTerm findTerm manageTerm
+              , NS "chat" spawnChat findChat manageChat
+              , NS "music" spawnMusic findMusic manageMusic ]
+  where
+    spawnMusic  = myMusic ++ " -name music" 
+    findMusic   = resource =? "music" -- its window will be named "ncmpcpp" (see above)
+    manageMusic = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below:
+      where
+        h = 0.25 -- height, 25%
+        w = 1 -- width, 100%
+        t = 1 - h -- bottom edge
+        l = (1 - w) / 2 -- centered left/right
+
+
+    spawnChat  = myChat ++ " -name chat" 
+    findChat   = resource =? "chat" -- its window will be named "Pavucontrol"
+    manageChat = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below:
+      where
+        h = 0.25 -- height, 25%
+        w = 1 -- width, 100%
+        t = 1 - h -- bottom edge
+        l = (1 - w) / 2 -- centered left/right
+
+
+    spawnTerm  = myTerminal ++ " -name term" -- launch my terminal
+    findTerm   = resource =? "term" -- its window will be named "scratchpad" (see above)
+    manageTerm = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below
+      where
+        h = 0.25 -- height, 25%
+        w = 1 -- width, 100%
+        t = 1 - h -- bottom edge
+        l = (1 - w) / 2 -- centered left/right
 
 
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
     , className =? "Rofi"           --> doFloat
+    , className =? "music"        --> doFloat
     , resource  =? "desktop_window" --> doIgnore ] <+>  namedScratchpadManageHook scratchpads
 
 
@@ -139,14 +168,13 @@ myStartupHook = do
           spawnOnce "~/bin/newbg &"
           spawnOnce dsp
 
-myLayoutHook =  smartBorders$ (vertical ||| centered ||| horizontal ||| grid ||| onebig ||| float)
+myLayoutHook =  vertical ||| centered ||| horizontal ||| grid ||| onebig
     where 
         grid = padding 20 20 $  Grid (4/3)
-        centered = padding 0 0 $ Full
+        centered = padding 0 0 $ smartBorders$ Full
         vertical = padding 20 20 $ Tall 3 (5/100) (50/100)
         horizontal = padding 20 20 $  Tall  1 (5/100) (4/10)
         onebig = padding 20 20 $ OneBig (3/4) (3/4)
-        float = padding 20 20 $ simplestFloat
       
 main = do
     xmonad       $  azertyConfig
