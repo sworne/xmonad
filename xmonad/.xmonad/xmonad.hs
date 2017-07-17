@@ -9,7 +9,7 @@ import Data.List
 import XMonad.Config.Azerty
 import System.IO (hPutStrLn)
 import System.Exit (exitSuccess)
-import  qualified XMonad.StackSet as W
+import qualified XMonad.StackSet as W
 
     -- Utilities
 import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
@@ -50,13 +50,12 @@ import XMonad.Layout.Reflect (reflectVert, reflectHoriz, REFLECTX(..), REFLECTY(
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), Toggle(..), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
 import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(Toggle))
--- import XMonad.StackSet as W
 
     -- Layouts
 import XMonad.Layout.GridVariants (Grid(Grid))
 import XMonad.Layout.SimplestFloat
 import XMonad.Layout.OneBig
-import XMonad.Layout.ZoomRow (zoomRow, zoomIn, zoomOut, zoomReset, ZoomMessage(ZoomFullToggle))
+import XMonad.Layout.ZoomRow --(zoomRow, zoomIn, zoomOut, zoomReset, ZoomMessage(ZoomFullToggle))
 import XMonad.Layout.IM (withIM, Property(Role))
 import XMonad.Layout.NoBorders
 
@@ -143,13 +142,14 @@ myStartupHook = do
           spawnOnce "~/bin/newbg &"
           spawnOnce dsp
 
-myLayoutHook =  smartBorders$ (vertical ||| centered ||| horizontal ||| grid)
+myLayoutHook =  smartBorders$ (vertical ||| centered ||| horizontal ||| grid ||| onebig ||| zoom)
     where 
         grid = padding 20 20 $  Grid (4/3)
         centered = padding 0 0 $ Full
-        vertical = padding 40 40 $ Tall 3 (5/100) (50/100)
-        horizontal = padding 20 20 $  Tall  1 (6/10) (4/10)
-       
+        vertical = padding 20 20 $ Tall 3 (5/100) (50/100)
+        horizontal = padding 20 20 $  Tall  1 (5/100) (4/10)
+        onebig = padding 20 20 $ OneBig (3/4) (3/4)
+        zoom = padding 20 20 $ reflectVert zoomRow
       
 main = do
     xmonad       $  azertyConfig

@@ -8,7 +8,7 @@ cabal install $HPKG
 cd ~/xmonad && stow -S $DIRS
 cd ~/bin/src && make
 
-if [ ! -f /tmp/foo.txt ]; then
+if [ ! -f ~/.env.yml ]; then
 echo "~/.env.yml does not exist. Creating it"
 echo "Sign up for an unsplash api key to set new backgrounds on login"
 echo "https://unsplash.com/join"
