@@ -4,6 +4,7 @@
 
     -- Base
 import XMonad
+import XMonad.Hooks.EwmhDesktops
 import Data.Maybe (isJust)
 import Data.List
 import XMonad.Config.Azerty
@@ -30,7 +31,7 @@ import XMonad.Actions.RotSlaves (rotSlavesDown, rotAllDown)
 import XMonad.Actions.CopyWindow (kill1, copyToAll, killAllOtherCopies, runOrCopy)
 import XMonad.Actions.WindowGo (runOrRaise, raiseMaybe)
 import XMonad.Actions.WithAll (sinkAll, killAll)
-import XMonad.Actions.CycleWS (moveTo, shiftTo, WSType(..))
+import XMonad.Actions.CycleWS (moveTo, shiftTo,prevWS, nextWS, WSType(..))
 import XMonad.Actions.GridSelect (GSConfig(..), goToSelected, bringSelected, colorRangeFromClassName, buildDefaultGSConfig)
 import XMonad.Actions.DynamicWorkspaces (addWorkspacePrompt, removeEmptyWorkspace)
 import XMonad.Actions.UpdatePointer
@@ -62,130 +63,89 @@ import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1
 
     -- YAML
 import GHC.Generics
-import Data.Yaml
+--import Data.Yaml
 
    -- Padding
 import Padding
-                                  --------------------
-
-
 
     -- Styles
 myFont          = "terminus"
-myBorderWidth   = 6
+myBorderWidth   = 5
 myColorBG       = "#1f1f1f"
-myColorWhite    = "#c0b18b"
-myColorRed      = "#c0b18b"
+myColorWhite    = "#ffc500"
+myColorRed      = "#ff7322"
 myColorBrown    = "#c0b18b"
 
     -- Settings
 myModMask       = mod4Mask
 myTerminal      = "urxvt"
 myMusic         = "spotify"
-myChat          = "msg"
 
-
-
-myKeys = 
+myKeys =
     -- XMonad
     [ ("M-M1-q", io exitSuccess)
 
     -- Windows
-    , ("M-q",               kill1)
-    , ("M-x",               windows W.swapDown)
-    , ("M-z",               windows W.swapUp)
-    , ("M-<Tab>",               windows W.focusDown)
-    , ("M-a" ,             sendMessage NextLayout)
+    , ("M-q",            kill1)
+    , ("M-z",            windows W.swapUp)
+    , ("M-<Tab>",        windows W.focusDown)
+    , ("M-a" ,           sendMessage NextLayout)
 
     -- windows hacks
-        , ("M-<Right>",               sendMessage Shrink)
-        , ("M-<Left>",               sendMessage Expand)
-        , ("M-<Down>",               withFocused $ windows . W.sink)
+    , ("M-x",            sendMessage Shrink)
+    , ("M-s",            sendMessage Expand)
+    , ("M-w",            withFocused $ windows . W.sink)
+    , ("M-,",            prevWS)
+    , ("M-.",            nextWS)
+    , ("M-S-,",          prevWS)
+    , ("M-S-.",          nextWS)
+
 
     -- Apps
-        , ("M-<Return>",        spawn "urxvt")
-        , ("M-S-<Return>",      spawn "google-chrome-stable")
-        , ("M-<Space>",         spawn "rofi -show run")
-        , ("M-l",               spawn "lockscr")
-    -- Scratchpads
-        , ("M-/",           namedScratchpadAction scratchpads "music")
-        , ("M-.",           namedScratchpadAction scratchpads "term")
-        , ("M-,",           namedScratchpadAction scratchpads "chat")
+    , ("M-<Return>",     spawn myTerminal)
+    , ("M-S-<Return>",   spawn "google-chrome-stable")
+    , ("M-<Space>",      spawn "rofi -show run")
+    , ("M-l",            spawn "lockscr")
 
-    ] 
+    ]
 
 
     -- workspaces
-myWorkspaces = ["one", "two"]
-
-
-scratchpads = [ NS "term" spawnTerm findTerm manageTerm
-              , NS "chat" spawnChat findChat manageChat
-              , NS "music" spawnMusic findMusic manageMusic ]
-  where
-    spawnMusic  = myMusic ++ " -name music" 
-    findMusic   = resource =? "music" -- its window will be named "ncmpcpp" (see above)
-    manageMusic = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below:
-      where
-        h = 0.25 -- height, 25%
-        w = 1 -- width, 100%
-        t = 1 - h -- bottom edge
-        l = (1 - w) / 2 -- centered left/right
-
-
-    spawnChat  = myChat ++ " -name chat" 
-    findChat   = resource =? "chat" -- its window will be named "Pavucontrol"
-    manageChat = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below:
-      where
-        h = 0.25 -- height, 25%
-        w = 1 -- width, 100%
-        t = 1 - h -- bottom edge
-        l = (1 - w) / 2 -- centered left/right
-
-
-    spawnTerm  = myTerminal ++ " -name term" -- launch my terminal
-    findTerm   = resource =? "term" -- its window will be named "scratchpad" (see above)
-    manageTerm = customFloating $ W.RationalRect l t w h -- and I'd like it fixed using the geometry below
-      where
-        h = 0.25 -- height, 25%
-        w = 1 -- width, 100%
-        t = 1 - h -- bottom edge
-        l = (1 - w) / 2 -- centered left/right
-
+myWorkspaces = ["-", "--", "---" ]
 
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
-    , className =? "Rofi"           --> doFloat
-    , className =? "music"        --> doFloat
-    , resource  =? "desktop_window" --> doIgnore ] <+>  namedScratchpadManageHook scratchpads
-
-
-dsp = "xrandr  "
+    , className =? "Rofi"           --> doFloat]
 
 myStartupHook = do
-          spawnOnce "unclutter &"
-          spawnOnce "compton &"
-          spawnOnce "~/bin/newbg &"
-          spawnOnce dsp
+        spawn "ps aux |grep '[c]ompton' ||compton &"
+        spawn "hsetroot -solid \"#1f1f1f\" &"
+        spawn "unclutter &"
 
-myLayoutHook =  vertical ||| centered ||| horizontal ||| grid ||| onebig
-    where 
-        grid = padding 20 20 $  Grid (4/3)
+myLayoutHook =  columns |||
+                display |||
+                horizontal |||
+                grid |||
+                centered
+
+    where
+        grid = padding 20 20 $ Grid (4/4)
         centered = padding 0 0 $ smartBorders$ Full
         vertical = padding 20 20 $ Tall 3 (5/100) (50/100)
         horizontal = padding 20 20 $  Tall  1 (5/100) (4/10)
         onebig = padding 20 20 $ OneBig (3/4) (3/4)
-      
+        columns = padding 30 30 $ Grid (2/2)
+        display = padding 100 100 $ Grid (2/2)
+
 main = do
-    xmonad       $  azertyConfig
+    xmonad  $ ewmh  $  azertyConfig
         { modMask            = myModMask
            , terminal           = myTerminal
-           , manageHook         = myManageHook 
-           , layoutHook         = myLayoutHook 
+           , manageHook         = myManageHook
+           , layoutHook         = myLayoutHook
            , startupHook        = myStartupHook
            , workspaces         = myWorkspaces
-           , borderWidth        = myBorderWidth 
+           , borderWidth        = myBorderWidth
            , normalBorderColor  = myColorBG
            , focusedBorderColor = myColorWhite
-        } `additionalKeysP`         myKeys 
-
+        } `additionalKeysP`         myKeys
