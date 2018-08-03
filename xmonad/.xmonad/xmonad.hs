@@ -105,7 +105,7 @@ myKeys =
     , ("M-<Return>",     spawn myTerminal)
     , ("M-S-<Return>",   spawn "google-chrome-stable")
     , ("M-<Space>",      spawn "rofi -show run")
-    , ("M-l",            spawn "lockscr")
+    , ("M-S-l",          spawn "xsecurelock")
 
     ]
 
