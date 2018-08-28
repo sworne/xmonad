@@ -1,0 +1,25 @@
+
+[global]
+    font = Monospace 9
+    geometry = 1000x7+1320
+    alignment = center
+
+[frame]
+    width = 4
+    color = "#ffc500"
+
+[urgency_low]
+    background = "#ffc500"
+    foreground = "#1f1f1f"
+    timeout = 8
+
+[urgency_normal]
+    background = "#ffc500"
+    foreground = "#1f1f1f"
+    timeout = 8
+
+[urgency_critical]
+    background = "#ffc500"
+    foreground = "#1f1f1f"
+    timeout = 8
+

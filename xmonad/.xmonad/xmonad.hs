@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 -- IMPORTS
 
     -- Base
@@ -10,6 +8,7 @@ import Data.List
 import XMonad.Config.Azerty
 import System.IO (hPutStrLn)
 import System.Exit (exitSuccess)
+import XMonad.Hooks.ManageHelpers
 import qualified XMonad.StackSet as W
 
     -- Utilities
@@ -79,7 +78,17 @@ myColorBrown    = "#c0b18b"
     -- Settings
 myModMask       = mod4Mask
 myTerminal      = "urxvt"
-myMusic         = "spotify"
+myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(which spotify)"
+myBrowser       = "google-chrome-stable"
+myNotes         = "gedit -s --name=notes ~/notes"
+myLauncher      = "rofi -show run"
+myNoise         = myBrowser ++ " --app='https://asoftmurmur.com/'"
+myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
+myBG            = "hsetroot -solid '" ++ myColorBG ++ "' &"
+myCompositor    = "ps aux |grep '[c]ompton' ||compton &"
+
+-- For key codes see:
+-- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
 
 myKeys =
     -- XMonad
@@ -90,8 +99,6 @@ myKeys =
     , ("M-z",            windows W.swapUp)
     , ("M-<Tab>",        windows W.focusDown)
     , ("M-a" ,           sendMessage NextLayout)
-
-    -- windows hacks
     , ("M-x",            sendMessage Shrink)
     , ("M-s",            sendMessage Expand)
     , ("M-w",            withFocused $ windows . W.sink)
@@ -103,24 +110,79 @@ myKeys =
 
     -- Apps
     , ("M-<Return>",     spawn myTerminal)
-    , ("M-S-<Return>",   spawn "google-chrome-stable")
-    , ("M-<Space>",      spawn "rofi -show run")
-    , ("M-S-l",          spawn "xsecurelock")
+    , ("M-S-<Return>",   spawn myBrowser)
+    , ("M-<Space>",      spawn myLauncher)
+    , ("M-l",            spawn myLock)
 
-    ]
+    -- Scratchpads
+    , ("M-<Delete>",           namedScratchpadAction scratchpads "music")
+    , ("M-`",           namedScratchpadAction scratchpads "notes")
+    , ("M-<Page_Up>",           namedScratchpadAction scratchpads "term")
+    , ("M-<Page_Down>",           namedScratchpadAction scratchpads "noise") ]
 
+-- Scratchpad
+scratchpads = [ NS "notes" spawnNotes findNotes manageNotes
+              , NS "term" spawnTerm findTerm manageTerm
+              , NS "noise" spawnNoise findNoise manageNoise
+              , NS "music" spawnMusic findMusic manageMusic ]
+
+-- Notepad
+  where
+    spawnNotes  = myNotes
+    findNotes   = resource =? "notes"
+    manageNotes = customFloating $ W.RationalRect l t w h
+      where
+        h = 0.40
+        w = 0.35
+        t = 0
+        l = (1 - w) / 2
+
+-- Terminal
+    spawnTerm  = myTerminal ++ " -name term"
+    findTerm   = resource =? "term"
+    manageTerm = customFloating $ W.RationalRect l t w h
+      where
+        h = 0.40
+        w = 0.35
+        t = 0
+        l = (1 - w) / 2
+
+-- Noise
+spawnNoise  = myNoise
+findNoise   = resource =? "asoftmurmur.com"
+manageNoise = customFloating $ W.RationalRect l t w h
+  where
+    h = 0.55
+    w = 0.35
+    t = 0
+    l = (1 - w) / 2
+
+-- Music
+spawnMusic  = myMusic
+findMusic   = resource =? "spotify"
+manageMusic = customFloating $ W.RationalRect l t w h
+  where
+    h = 0.55
+    w = 0.35
+    t = 0
+    l = (1 - w) / 2
 
     -- workspaces
 myWorkspaces = ["-", "--", "---" ]
 
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
-    , className =? "Rofi"           --> doFloat]
+    , className =? "Rofi"           --> doFloat
+    , className =? "notes"          --> doFloat
+    , className =? "term"           --> doFloat
+    , className =? "music"          --> doFloat
+    , className =? "spotify"          --> doFloat
+    ]  <+>  namedScratchpadManageHook scratchpads
 
 myStartupHook = do
-        spawn "ps aux |grep '[c]ompton' ||compton &"
-        spawn "hsetroot -solid \"#1f1f1f\" &"
-        spawn "unclutter &"
+    spawn myCompositor
+    spawn myBG
+    spawn "unclutter &"
 
 myLayoutHook =  columns |||
                 display |||
@@ -137,15 +199,14 @@ myLayoutHook =  columns |||
         columns = padding 30 30 $ Grid (2/2)
         display = padding 100 100 $ Grid (2/2)
 
-main = do
-    xmonad  $ ewmh  $  azertyConfig
-        { modMask            = myModMask
-           , terminal           = myTerminal
-           , manageHook         = myManageHook
-           , layoutHook         = myLayoutHook
-           , startupHook        = myStartupHook
-           , workspaces         = myWorkspaces
-           , borderWidth        = myBorderWidth
-           , normalBorderColor  = myColorBG
-           , focusedBorderColor = myColorWhite
-        } `additionalKeysP`         myKeys
+main = xmonad  $ ewmh  $  azertyConfig
+    { modMask            = myModMask
+    , terminal           = myTerminal
+    , manageHook         = myManageHook
+    , layoutHook         = myLayoutHook
+    , startupHook        = myStartupHook
+    , workspaces         = myWorkspaces
+    , borderWidth        = myBorderWidth
+    , normalBorderColor  = myColorBG
+    , focusedBorderColor = myColorWhite
+    } `additionalKeysP`    myKeys
