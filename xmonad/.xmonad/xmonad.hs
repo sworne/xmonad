@@ -54,8 +54,15 @@ import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(T
     -- Layouts
 import XMonad.Layout.GridVariants (Grid(Grid))
 import XMonad.Layout.SimplestFloat
-import XMonad.Layout.OneBig
 import XMonad.Layout.NoBorders
+import XMonad.Hooks.ManageDocks
+import XMonad.Layout.ComboP
+import XMonad.Layout.Tabbed
+import XMonad.Layout.TwoPane
+import XMonad.Actions.CopyWindow
+import XMonad.Layout.Gaps
+import XMonad.Layout.Spacing
+
 
     -- Prompts
 import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1D(..))
@@ -63,9 +70,6 @@ import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1
     -- YAML
 import GHC.Generics
 --import Data.Yaml
-
-   -- Padding
-import Padding
 
     -- Styles
 myFont          = "terminus"
@@ -75,17 +79,21 @@ myColorWhite    = "#ffc500"
 myColorRed      = "#ff7322"
 myColorBrown    = "#c0b18b"
 
+myTabConfig = def { inactiveBorderColor = myColorWhite
+                  , activeTextColor = myColorBG}
+
     -- Settings
 myModMask       = mod4Mask
 myTerminal      = "urxvt"
 myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(which spotify)"
 myBrowser       = "google-chrome-stable"
-myNotes         = "gedit -s --name=notes ~/notes"
+myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
 myLauncher      = "rofi -show run"
-myNoise         = myBrowser ++ " --app='https://asoftmurmur.com/'"
+myNoise         =  myBrowser ++ " --app='https://asoftmurmur.com/'"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
 myBG            = "hsetroot -solid '" ++ myColorBG ++ "' &"
 myCompositor    = "ps aux |grep '[c]ompton' ||compton &"
+myBar           = "xmobar ~/.xmonad/xmobar.hs"
 
 -- For key codes see:
 -- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
@@ -115,57 +123,22 @@ myKeys =
     , ("M-l",            spawn myLock)
 
     -- Scratchpads
-    , ("M-<Delete>",           namedScratchpadAction scratchpads "music")
-    , ("M-`",           namedScratchpadAction scratchpads "notes")
-    , ("M-<Page_Up>",           namedScratchpadAction scratchpads "term")
-    , ("M-<Page_Down>",           namedScratchpadAction scratchpads "noise") ]
+    , ("M-<Delete>",     namedScratchpadAction scratchpads "music")
+    , ("M-`",            namedScratchpadAction scratchpads "notes")
+    ]
 
 -- Scratchpad
-scratchpads = [ NS "notes" spawnNotes findNotes manageNotes
-              , NS "term" spawnTerm findTerm manageTerm
-              , NS "noise" spawnNoise findNoise manageNoise
-              , NS "music" spawnMusic findMusic manageMusic ]
+scratchpads = [ NS "notes" spawnNotes findNotes nonFloating
+              , NS "music" spawnMusic findMusic nonFloating
+              ]
 
 -- Notepad
   where
     spawnNotes  = myNotes
-    findNotes   = resource =? "notes"
-    manageNotes = customFloating $ W.RationalRect l t w h
-      where
-        h = 0.40
-        w = 0.35
-        t = 0
-        l = (1 - w) / 2
-
--- Terminal
-    spawnTerm  = myTerminal ++ " -name term"
-    findTerm   = resource =? "term"
-    manageTerm = customFloating $ W.RationalRect l t w h
-      where
-        h = 0.40
-        w = 0.35
-        t = 0
-        l = (1 - w) / 2
-
--- Noise
-spawnNoise  = myNoise
-findNoise   = resource =? "asoftmurmur.com"
-manageNoise = customFloating $ W.RationalRect l t w h
-  where
-    h = 0.55
-    w = 0.35
-    t = 0
-    l = (1 - w) / 2
-
--- Music
-spawnMusic  = myMusic
-findMusic   = resource =? "spotify"
-manageMusic = customFloating $ W.RationalRect l t w h
-  where
-    h = 0.55
-    w = 0.35
-    t = 0
-    l = (1 - w) / 2
+    findNotes   = resource =? "keep.google.com"
+    -- Music
+    spawnMusic  = myMusic
+    findMusic   = resource =? "spotify"
 
     -- workspaces
 myWorkspaces = ["-", "--", "---" ]
@@ -173,31 +146,36 @@ myWorkspaces = ["-", "--", "---" ]
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
     , className =? "Rofi"           --> doFloat
-    , className =? "notes"          --> doFloat
-    , className =? "term"           --> doFloat
-    , className =? "music"          --> doFloat
-    , className =? "spotify"          --> doFloat
     ]  <+>  namedScratchpadManageHook scratchpads
 
 myStartupHook = do
     spawn myCompositor
+    spawn myBar
     spawn myBG
     spawn "unclutter &"
 
-myLayoutHook =  columns |||
-                display |||
-                horizontal |||
-                grid |||
-                centered
-
+myLayoutHook =  spacing 20 $ combineTwoP two Full grid clss |||
+                combineTwoP two Full vertical clss |||
+                combineTwoP two Full tab clss |||
+                combineTwoP two Full centered clss |||
+                combineTwoP two Full display clss |||
+                full
     where
-        grid = padding 20 20 $ Grid (4/4)
-        centered = padding 0 0 $ smartBorders$ Full
-        vertical = padding 20 20 $ Tall 3 (5/100) (50/100)
-        horizontal = padding 20 20 $  Tall  1 (5/100) (4/10)
-        onebig = padding 20 20 $ OneBig (3/4) (3/4)
-        columns = padding 30 30 $ Grid (2/2)
-        display = padding 100 100 $ Grid (2/2)
+        centered = gap $ Full
+        grid = gap $ Grid (4/4)
+        vertical = gap $ Tall 3 (5/100) (50/100)
+        full = smartBorders $ Full
+        display = gapLarge $ Full
+        tab = gap $ tabbed shrinkText myTabConfig
+        two = Tall 1 (1/50) (1/5)
+
+        rfk = reflectHoriz
+        gap =  gaps [(U,20), (D,20), (L,20), (R,20)]
+    --    pad = spacingRaw True (Border 10 10 10 10) True (Border 10 10 10 10) True
+        gapLarge = gaps [(U,100), (D,100), (L,100), (R,100)]
+        keep = Title "Google Keep" `Or` Role "pop-up"
+        spotify = ClassName "Spotify"
+        clss = keep `Or` spotify
 
 main = xmonad  $ ewmh  $  azertyConfig
     { modMask            = myModMask
