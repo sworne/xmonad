@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-} 
 -- IMPORTS
 
     -- Base
@@ -34,6 +35,7 @@ import XMonad.Actions.CycleWS (moveTo, shiftTo,prevWS, nextWS, WSType(..))
 import XMonad.Actions.GridSelect (GSConfig(..), goToSelected, bringSelected, colorRangeFromClassName, buildDefaultGSConfig)
 import XMonad.Actions.DynamicWorkspaces (addWorkspacePrompt, removeEmptyWorkspace)
 import XMonad.Actions.UpdatePointer
+import XMonad.Actions.CopyWindow
 import qualified XMonad.Actions.ConstrainedResize as Sqr
 
     -- Layouts modifiers
@@ -41,9 +43,6 @@ import XMonad.Layout.PerWorkspace (onWorkspace)
 import XMonad.Layout.Renamed (renamed, Rename(CutWordsLeft, Replace))
 import XMonad.Layout.WorkspaceDir
 import XMonad.Layout.Spacing (spacing)
-import XMonad.Layout.Minimize
-import XMonad.Layout.Maximize
-import XMonad.Layout.BoringWindows (boringWindows)
 import XMonad.Layout.LimitWindows (limitWindows, increaseLimit, decreaseLimit)
 import XMonad.Layout.WindowArranger (windowArrange, WindowArrangerMsg(..))
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), Toggle(..), (??))
@@ -52,20 +51,16 @@ import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(T
 
     -- Layouts
 import XMonad.Layout.GridVariants (Grid(Grid))
-import XMonad.Layout.SimplestFloat
 import XMonad.Layout.NoBorders
-import XMonad.Hooks.ManageDocks
 import XMonad.Layout.ComboP
 import XMonad.Layout.Tabbed
 import XMonad.Layout.TwoPane
-import XMonad.Actions.CopyWindow
 import XMonad.Layout.Gaps
 import XMonad.Layout.Spacing
 import XMonad.Layout.Column
-import XMonad.Layout.BoringWindows
-import XMonad.Layout.IfMax
-import XMonad.Layout.Minimize
-
+import XMonad.Layout.MultiToggle
+import XMonad.Actions.DynamicWorkspaces
+import XMonad.Actions.CopyWindow(copy)
 
     -- Prompts
 import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1D(..))
@@ -99,8 +94,15 @@ myLauncher      = "rofi -show run"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
 myBG            = "hsetroot -solid '" ++ myColorBG ++ "' &"
 myCompositor    = "ps aux |grep '[c]ompton' ||compton &"
-myChat          =  myBrowser ++ " --app='https://chat.google.com/'"
 myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
+
+bar = gaps [(U,40), (D,10), (L,0), (R,0)] $ smartBorders $ tabbed shrinkText myTabConfig
+two = Tall 1 (1/50) (1/4)
+clss = ClassName "Spotify" `Or` Role "pop-up"
+data BAR = BAR deriving (Read, Show, Eq, Typeable)
+instance Transformer BAR Window
+    where
+      transform _ x k = k (combineTwoP two bar x clss) (const x)
 
 
 -- For key codes see:
@@ -130,65 +132,43 @@ myKeys =
     , ("M-<Space>",      spawn myLauncher)
     , ("M-l",            spawn myLock)
 
-    -- Scratchpads
-    , ("M-`",            namedScratchpadAction scratchpads "music")
-    , ("M-<Page_Up>",    namedScratchpadAction scratchpads "notes")
-    , ("M-<Page_Down>",  namedScratchpadAction scratchpads "chat")
+    -- Bar
+    , ("M-<Delete>",     sendMessage $ Toggle BAR)
     ]
 
--- Scratchpad
-scratchpads = [ NS "notes" spawnNotes findNotes nonFloating
-              , NS "music" spawnMusic findMusic nonFloating
-              , NS "chat" spawnChat findChat nonFloating
-              ]
-
--- Notepad
-  where
-    spawnNotes  = myNotes
-    findNotes   = resource =? "keep.google.com"
-    -- Music
-    spawnMusic  = myMusic
-    findMusic   = resource =? "spotify"
-    -- Chat
-    spawnChat   = myChat
-    findChat    = resource =? "chat.google.com"
-
     -- workspaces
-myWorkspaces = ["-", "--", "---" ]
+myWorkspaces = ["-", "--"]
 
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
     , className =? "Rofi"           --> doFloat
-    ]  <+>  namedScratchpadManageHook scratchpads
+    ]
 
 myStartupHook = do
     spawn myCompositor
     spawn myBG
     spawn "unclutter &"
 
-myLayoutHook =  combineTwoP two (gapB $ bar) (gapS $ grid) clss |||
-                combineTwoP two (gapB $ bar) (gapS $ vertical) clss |||
-                combineTwoP two (gapB $ bar) (gapS $ tabs) clss |||
-                combineTwoP two (gapB $ bar) (gapL $ tabs) clss |||
+
+myLayoutHook =  mkToggle (single BAR)
+                (gapS grid |||
+                gapS vertical |||
+                gapS tabs |||
+                gapL tabs) ||| 
                 full
     where
-        full = smartBorders $ Full
+        full = smartBorders Full
         grid = padS $ Grid (4/4)
         vertical = padS $ Tall 3 (5/100) (50/100)
-        display = gapL $ Full
-        bar =  noBorders (IfMax 2 (Column 1) tabs)
         tabs = tabbed shrinkText myTabConfig
         two = Tall 1 (1/50) (1/4)
 
         gapS =  gaps [(U,40), (D,10), (L,20), (R,20)]
         gapM = gaps [(U,60), (D,60), (L,30), (R,30)]
         gapL = gaps [(U,100), (D,100), (L,100), (R,100)]
-        gapB =  gaps [(U,40), (D,10), (L,0), (R,0)]
         padS = spacing 10
         padL = spacing 20
-        keep = Title "Google Keep" `Or` Role "pop-up"
-        spotify = ClassName "Spotify"
-        clss = keep `Or` spotify
+
 
 main = xmonad  $ ewmh  $  azertyConfig
     { modMask            = myModMask
