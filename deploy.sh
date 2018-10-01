@@ -1,7 +1,7 @@
 #!/bin/sh
 WDIR=$(pwd)
-PKGS="xmonad stow xsecurelock hsetroot rofi feh compton rxvt-unicode-256color cabal-install fonts-inconsolata dunst"
-HPKG="yaml"
+PKGS="xmonad stow xsecurelock hsetroot rofi feh compton rxvt-unicode-256color cabal-install fonts-inconsolata dunst fonts-font-awesome xfonts-terminus"
+HPKG="yaml xmobar"
 DIRS="xmonad compton x"
 SPOTIFY_URL="https://github.com/dasJ/spotifywm"
 SPOTIFY_DIR="/tmp/spotifywm"
@@ -16,7 +16,7 @@ function install_pkg() {
 # Update xmonad
 function update_xmonad() {
   cabal update
-  cabal install $HPKG
+  cabal install -fwith_datezone -fwith_xft -fwith_utf8 $HPKG
 }
 
 
@@ -71,7 +71,7 @@ function get_conf() {
   esac
 }
 
-echo "sudo apt-get install $PKGS" 
+echo "sudo apt-get install $PKGS"
 install_pkg
 echo "cabal update"
 update_xmonad
