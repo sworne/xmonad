@@ -79,11 +79,11 @@ import GHC.Generics
 
 -- Theme
 myFont = "inconsolata"
-myBorderWidth   = 5
+myBorderWidth   = 6
 myColorBG       = "#1f1f1f"
-myColorWhite    = "#ffc500"
-myColorRed      = "#ff7322"
-myColorBrown    = "#c0b18b"
+myColorBG1      = "#8e9eab"
+myColorBG2      = "#eef2f3"
+myColorWhite    = "#fdd6b5"
 myTabConfig = def {
       activeColor = myColorWhite
     , activeTextColor = myColorBG
@@ -101,24 +101,27 @@ myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(whi
 myBrowser       = "google-chrome-stable"
 myLauncher      = "rofi -show run"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
-myBG            = "hsetroot -solid '" ++ myColorBG ++ "' &"
-myCompositor    = "ps aux |grep '[c]ompton' ||compton &"
+myBG            = "convert -size 100x100  gradient:'" ++ myColorBG1 ++"-"++ myColorBG2 ++"' ~/.bg.png && feh --bg-fill ~/.bg.png"
+myCompositor    = "pkill compton; compton"
 myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
+myChat          =  myBrowser ++ " --app='https://chat.google.com/'"
 myBar           =  "./.cabal/bin/xmobar ~/.xmonad/xmobar.hs"
+myNext          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next"
+myPrev          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous"
 
 
-bar = gaps [(U,40), (D,10), (L,0), (R,0)] $ smartBorders $ tabbed shrinkText myTabConfig
-two = Tall 1 (1/50) (1/4)
-clss = ClassName "Spotify" `Or` Role "pop-up"
+bar = boringWindows (smartBorders $ tabbedBottom shrinkText myTabConfig)
+two = Tall 1 (1/50) (2/9)
+clss = ClassName "Spotify" `Or` Role "pop-up" `Or` ClassName "Gedit"
 data BAR = BAR deriving (Read, Show, Eq, Typeable)
 instance Transformer BAR Window
     where
       transform _ x k = k (combineTwoP two bar x clss) (const x)
 
-mini f z [] = z
-mini f z (x : xs) = x `f` mini f z xs
-
-
+data DIFF = DIFF deriving (Read, Show, Eq, Typeable)
+instance Transformer DIFF Window
+    where
+        transform _ x k = k (TwoPane (3/100) (1/2)) (const x)
 
 -- For key codes see:
 -- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
@@ -134,19 +137,23 @@ myKeys =
     , ("M-x",            sendMessage Shrink)
     , ("M-s",            sendMessage Expand)
     , ("M-w",            withFocused $ windows . W.sink)
-    , ("M-,",            prevWS)
-    , ("M-.",            nextWS)
+    , ("M-,",            spawn myPrev)
+    , ("M-.",            spawn myNext)
 
     -- Apps
     , ("M-<Return>",     spawn myTerminal)
     , ("M-S-<Return>",   spawn myBrowser)
     , ("M-<Space>",      spawn myLauncher)
     , ("M-l",            spawn myLock)
+    , ("M--",            spawn myMusic)
+    , ("M-=",            spawn myNotes) 
+    , ("M-\\",           spawn myChat)
 
     -- Toggle
     --, ("M-<Page_Up>",    map (hideWindow) (allWithProperty clss))
     --, ("M-<Page_Up>",    map mini (allWithProperty clss) hideWindow)
-    , ("M-<Delete>",     sendMessage $ Toggle BAR)
+    , ("M-`",            sendMessage $ Toggle BAR)
+    , ("M-d",            sendMessage $ Toggle DIFF)
     , ("M-f",            sendMessage $ Toggle NBFULL)
     ]
 
@@ -175,13 +182,16 @@ myStartupHook = do
 
 
 -- Layouts
-myLayoutHook =  mkToggle (single BAR) $ mkToggle (single NBFULL) (
-                hiddenWindows $
-                gapS grid |||
-                gapS gold |||
-                gapS vertical |||
-                gapS tabs |||
-                gapL tabs)
+myLayoutHook =  avoidStruts $
+                mkToggle (single BAR) $
+                mkToggle (single NBFULL) $
+                mkToggle (single DIFF) (
+                    gapS grid |||
+                    gapS gold |||
+                    gapS vertical |||
+                    gapS tabs |||
+                    gapL tabs |||
+                    gapL grid)
     where
         full = smartBorders Full
         grid = padS $ Grid (4/4)
@@ -192,9 +202,9 @@ myLayoutHook =  mkToggle (single BAR) $ mkToggle (single NBFULL) (
         gold   = Tall 1 0.03 ratio
         ratio = toRational (2/(1 + sqrt 5 :: Double)) -- golden ratio
 
-        gapS =  gaps [(U,40), (D,10), (L,20), (R,20)]
+        gapS =  gaps [(U,20), (D,30), (L,20), (R,20)]
         gapM = gaps [(U,60), (D,60), (L,30), (R,30)]
-        gapL = gaps [(U,100), (D,100), (L,100), (R,100)]
+        gapL = gaps [(U,120), (D,120), (L,120), (R,120)]
         padS = spacing 10
         padL = spacing 20
 
