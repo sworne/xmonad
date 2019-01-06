@@ -69,6 +69,7 @@ import XMonad.Hooks.Minimize
 import XMonad.Layout.Hidden
 import XMonad.Actions.WithAll
 import XMonad.Layout.Drawer
+import Numeric (showHex, showIntAtBase)
 
     -- Prompts
 import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1D(..))
@@ -77,13 +78,21 @@ import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1
 import GHC.Generics
 --import Data.Yaml
 
+    -- WALL
+import Codec.Picture
+import Codec.Picture.Types
+import System.IO.Unsafe
+import System.Random
+import System.Process
+
+
 -- Theme
 myFont = "inconsolata"
 myBorderWidth   = 6
 myColorBG       = "#1f1f1f"
 myColorBG1      = "#8e9eab"
 myColorBG2      = "#eef2f3"
-myColorWhite    = "#fdd6b5"
+myColorWhite    = "#fdd6b5" -- Alt: seedColor
 myTabConfig = def {
       activeColor = myColorWhite
     , activeTextColor = myColorBG
@@ -101,15 +110,19 @@ myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(whi
 myBrowser       = "google-chrome-stable"
 myLauncher      = "rofi -show run"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
-myBG            = "convert -size 100x100  gradient:'" ++ myColorBG1 ++"-"++ myColorBG2 ++"' ~/.bg.png && feh --bg-fill ~/.bg.png"
+myBG            = "~/.bg.png"
+myBgCmd         = "feh --bg-fill " ++ myBG
 myCompositor    = "pkill compton; compton"
 myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
 myChat          =  myBrowser ++ " --app='https://chat.google.com/'"
 myBar           =  "./.cabal/bin/xmobar ~/.xmonad/xmobar.hs"
 myNext          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next"
 myPrev          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous"
+mySeed          = seed 120 254
+seedColor       = "#" ++ showHex mySeed "" ++ showHex 24 "" ++ showHex mySeed ""
 
 
+-- Window Hacks
 bar = boringWindows (smartBorders $ tabbedBottom shrinkText myTabConfig)
 two = Tall 1 (1/50) (2/9)
 clss = ClassName "Spotify" `Or` Role "pop-up" `Or` ClassName "Gedit"
@@ -123,11 +136,22 @@ instance Transformer DIFF Window
     where
         transform _ x k = k (TwoPane (3/100) (1/2)) (const x)
 
+-- MATH
+seed :: Int -> Int -> Int
+seed x y = unsafePerformIO (getStdRandom (randomR (x, y)))
+
+-- WALL
+imageCreator :: String -> IO ()
+imageCreator path = writePng path $ generateImage pixelRenderer mySeed 280
+   where pixelRenderer x y = PixelRGB8 (fromIntegral x) (fromIntegral y) (fromIntegral x)
+
 -- For key codes see:
 -- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
 myKeys =
-    -- XMonad
-    [ ("M-M1-q", io exitSuccess)
+    [
+    -- WM
+      ("M-M1-q",         io exitSuccess)
+    , ("M-l",            spawn myLock)
 
     -- Windows
     , ("M-q",            kill1)
@@ -144,37 +168,28 @@ myKeys =
     , ("M-<Return>",     spawn myTerminal)
     , ("M-S-<Return>",   spawn myBrowser)
     , ("M-<Space>",      spawn myLauncher)
-    , ("M-l",            spawn myLock)
     , ("M--",            spawn myMusic)
-    , ("M-=",            spawn myNotes) 
+    , ("M-=",            spawn myNotes)
     , ("M-\\",           spawn myChat)
 
-    -- Toggle
-    --, ("M-<Page_Up>",    map (hideWindow) (allWithProperty clss))
-    --, ("M-<Page_Up>",    map mini (allWithProperty clss) hideWindow)
+    -- Windows
     , ("M-`",            sendMessage $ Toggle BAR)
     , ("M-d",            sendMessage $ Toggle DIFF)
     , ("M-f",            sendMessage $ Toggle NBFULL)
     ]
 
 -- workspaces
-myWorkspaces = ["-", "--"]
-
-scratchpads = [ NS "notes" spawnNotes findNotes manageNotes]
-
--- Notepad
-  where
-    spawnNotes  = myNotes
-    findNotes   = resource =? "notes"
-    manageNotes = nonFloating
+myWorkspaces = ["1", "2"]
 
 -- Hooks
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
     , className =? "Rofi"           --> doFloat
-    ] <+>  namedScratchpadManageHook scratchpads
+    ]
 
+myStartupHook :: X ()
 myStartupHook = do
+    liftIO $ imageCreator myBG >> return ()
     spawn myCompositor
     spawn myBG
     spawn myBar
@@ -200,11 +215,11 @@ myLayoutHook =  avoidStruts $
         two = Tall 1 (1/50) (1/4)
         drawer = simpleDrawer 0.001 0.001 clss
         gold   = Tall 1 0.03 ratio
-        ratio = toRational (2/(1 + sqrt 5 :: Double)) -- golden ratio
+        ratio = toRational (2/(1 + sqrt 5 :: Double))
 
         gapS =  gaps [(U,20), (D,30), (L,20), (R,20)]
         gapM = gaps [(U,60), (D,60), (L,30), (R,30)]
-        gapL = gaps [(U,120), (D,120), (L,120), (R,120)]
+        gapL = gaps [(U,160), (D,160), (L,160), (R,160)]
         padS = spacing 10
         padL = spacing 20
 
