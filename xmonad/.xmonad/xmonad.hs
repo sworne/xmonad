@@ -70,6 +70,8 @@ import XMonad.Layout.Hidden
 import XMonad.Actions.WithAll
 import XMonad.Layout.Drawer
 import Numeric (showHex, showIntAtBase)
+import XMonad.Actions.TagWindows
+import XMonad.Layout.ComboP
 
     -- Prompts
 import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1D(..))
@@ -123,13 +125,16 @@ seedColor       = "#" ++ showHex mySeed "" ++ showHex 24 "" ++ showHex mySeed ""
 
 
 -- Window Hacks
+dock = combineTwoP hrz bar Full tag
 bar = boringWindows (smartBorders $ tabbedBottom shrinkText myTabConfig)
 two = Tall 1 (1/50) (2/9)
+hrz = Mirror $ Tall 1 (1/50) (1/3)
 clss = ClassName "Spotify" `Or` Role "pop-up" `Or` ClassName "Gedit"
+tag = withTagged "dock"
 data BAR = BAR deriving (Read, Show, Eq, Typeable)
 instance Transformer BAR Window
     where
-      transform _ x k = k (combineTwoP two bar x clss) (const x)
+      transform _ x k = k (combineTwoP two dock x clss) (const x)
 
 data DIFF = DIFF deriving (Read, Show, Eq, Typeable)
 instance Transformer DIFF Window
@@ -152,6 +157,7 @@ myKeys =
     -- WM
       ("M-M1-q",         io exitSuccess)
     , ("M-l",            spawn myLock)
+    , ("M-t",            withFocused (addTag "dock"))
 
     -- Windows
     , ("M-q",            kill1)
@@ -189,7 +195,7 @@ myManageHook = composeAll
 
 myStartupHook :: X ()
 myStartupHook = do
-    liftIO $ imageCreator myBG >> return ()
+    liftIO $ imageCreator myBG
     spawn myCompositor
     spawn myBG
     spawn myBar

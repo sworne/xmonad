@@ -1,8 +1,8 @@
 #!/bin/sh
 WDIR=$(pwd)
 PKGS="xmonad stow xsecurelock hsetroot rofi feh compton rxvt-unicode-256color cabal-install fonts-inconsolata dunst fonts-font-awesome xfonts-terminus"
-HPKG="yaml xmobar"
-DIRS="xmonad compton x"
+HPKG="yaml xmobar juicypixels"
+DIRS="xmonad compton x rofi dunst"
 SPOTIFY_URL="https://github.com/dasJ/spotifywm"
 SPOTIFY_DIR="/tmp/spotifywm"
 VIDEO_URL="http://a1.phobos.apple.com/us/r1000/000/Features/atv/AutumnResources/videos"
