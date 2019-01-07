@@ -112,7 +112,7 @@ myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(whi
 myBrowser       = "google-chrome-stable"
 myLauncher      = "rofi -show run"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
-myBG            = "~/.bg.png"
+myBG            = "/tmp/bg.png"
 myBgCmd         = "feh --bg-fill " ++ myBG
 myCompositor    = "pkill compton; compton"
 myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
@@ -120,21 +120,20 @@ myChat          =  myBrowser ++ " --app='https://chat.google.com/'"
 myBar           =  "./.cabal/bin/xmobar ~/.xmonad/xmobar.hs"
 myNext          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next"
 myPrev          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous"
-mySeed          = seed 120 254
-seedColor       = "#" ++ showHex mySeed "" ++ showHex 24 "" ++ showHex mySeed ""
+-- seedColor       = "#" ++ showHex mySeed "" ++ showHex 24 "" ++ showHex mySeed ""
 
 
 -- Window Hacks
-dock = combineTwoP hrz bar Full tag
+--dock = combineTwoP hrz bar Full tag
 bar = boringWindows (smartBorders $ tabbedBottom shrinkText myTabConfig)
 two = Tall 1 (1/50) (2/9)
 hrz = Mirror $ Tall 1 (1/50) (1/3)
 clss = ClassName "Spotify" `Or` Role "pop-up" `Or` ClassName "Gedit"
-tag = withTagged "dock"
+--tag = withTagged "dock"
 data BAR = BAR deriving (Read, Show, Eq, Typeable)
 instance Transformer BAR Window
     where
-      transform _ x k = k (combineTwoP two dock x clss) (const x)
+      transform _ x k = k (combineTwoP two bar x clss) (const x)
 
 data DIFF = DIFF deriving (Read, Show, Eq, Typeable)
 instance Transformer DIFF Window
@@ -142,13 +141,13 @@ instance Transformer DIFF Window
         transform _ x k = k (TwoPane (3/100) (1/2)) (const x)
 
 -- MATH
-seed :: Int -> Int -> Int
-seed x y = unsafePerformIO (getStdRandom (randomR (x, y)))
+genSeed :: Int -> Int -> Int
+genSeed x y = unsafePerformIO (getStdRandom (randomR (x, y)))
 
 -- WALL
-imageCreator :: String -> IO ()
-imageCreator path = writePng path $ generateImage pixelRenderer mySeed 280
-   where pixelRenderer x y = PixelRGB8 (fromIntegral x) (fromIntegral y) (fromIntegral x)
+imageCreator :: String -> Int -> IO ()
+imageCreator path seed = writePng path $ generateImage pixelRenderer 250 seed
+   where pixelRenderer x y = PixelRGB8 (fromIntegral 250) (fromIntegral x) (fromIntegral y)
 
 -- For key codes see:
 -- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
@@ -157,6 +156,7 @@ myKeys =
     -- WM
       ("M-M1-q",         io exitSuccess)
     , ("M-l",            spawn myLock)
+    , ("M-p",            sequence_ [liftIO $ imageCreator myBG (genSeed 130 254), spawn myBgCmd])
     , ("M-t",            withFocused (addTag "dock"))
 
     -- Windows
@@ -195,10 +195,10 @@ myManageHook = composeAll
 
 myStartupHook :: X ()
 myStartupHook = do
-    liftIO $ imageCreator myBG
+    liftIO $ imageCreator myBG (genSeed 130 254)
     spawn myCompositor
-    spawn myBG
     spawn myBar
+    spawn myBgCmd
     spawn "unclutter &"
 
 
