@@ -1,0 +1,34 @@
+name:                SworneXmonad
+version:             1.0
+homepage:            https://github.com/sworne/xmonad
+license:             BSD3
+author:              sworne
+maintainer:          samuel@worne.xyz
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Unsplash, Sidebar
+  other-extensions:    DeriveDataTypeable,
+                       DeriveGeneric,
+                       FlexibleInstances
+                       MultiParamTypeClasses,
+                       OverloadedStrings,
+                       RecordWildCards,
+                       TypeSynonymInstances
+  build-depends:       aeson,
+                       async,
+                       base,
+                       bytestring,
+		                   control,
+                       data-default,
+                       lens,
+                       QuickCheck,
+                       split,
+                       text,
+                       wreq,
+                       xmobar,
+                       xmonad,
+                       xmonad-contrib
+  default-language:    Haskell2010

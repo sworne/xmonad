@@ -1,242 +1,291 @@
-{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-}
--- IMPORTS
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleContexts #-}
 
-    -- Base
+-- XMonad Core Imports
 import XMonad
-import XMonad.Hooks.EwmhDesktops
-import Data.Maybe (isJust)
-import Data.List
-import XMonad.Config.Azerty
 import System.IO (hPutStrLn)
 import System.Exit (exitSuccess)
-import XMonad.Hooks.ManageHelpers
 import qualified XMonad.StackSet as W
 
-    -- Utilities
+-- Standard
+import Control.Lens hiding ((??), elements)
+
+-- Config
+import XMonad.Config.Azerty
+
+-- Utilities
 import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
-import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (safeSpawn, unsafeSpawn, runInTerm, spawnPipe)
 import XMonad.Util.SpawnOnce
+import XMonad.Util.Loggers
 
-    -- Hooks
-import XMonad.Hooks.DynamicLog (dynamicLogWithPP, defaultPP, dzenColor, pad, shorten, wrap, PP(..))
+-- Hooks
+import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.ManageDocks (avoidStruts, ToggleStruts(..))
-import XMonad.Hooks.Place (placeHook, withGaps, smart)
-import XMonad.Hooks.InsertPosition
-import XMonad.Hooks.FloatNext (floatNextHook, toggleFloatNext, toggleFloatAllNew)
+import XMonad.Hooks.XPropManage
+import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.ManageDocks
 
-    -- Actions
+-- Actions
 import XMonad.Actions.Promote
-import XMonad.Actions.RotSlaves (rotSlavesDown, rotAllDown)
-import XMonad.Actions.CopyWindow (kill1, copyToAll, killAllOtherCopies, runOrCopy)
-import XMonad.Actions.WindowGo (runOrRaise, raiseMaybe)
-import XMonad.Actions.WithAll (sinkAll, killAll)
 import XMonad.Actions.CycleWS (moveTo, shiftTo,prevWS, nextWS, WSType(..))
 import XMonad.Actions.GridSelect (GSConfig(..), goToSelected, bringSelected, colorRangeFromClassName, buildDefaultGSConfig)
-import XMonad.Actions.DynamicWorkspaces (addWorkspacePrompt, removeEmptyWorkspace)
-import XMonad.Actions.UpdatePointer
-import XMonad.Actions.CopyWindow
-import qualified XMonad.Actions.ConstrainedResize as Sqr
+import XMonad.Actions.CopyWindow hiding (copy)
+import XMonad.Actions.TagWindows
+import XMonad.Actions.CycleWindows
 
-    -- Layouts modifiers
-import XMonad.Layout.PerWorkspace (onWorkspace)
-import XMonad.Layout.Renamed (renamed, Rename(CutWordsLeft, Replace))
-import XMonad.Layout.WorkspaceDir
+-- Layouts
+import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(Toggle))
+import qualified XMonad.Layout.WindowNavigation as WN
+import XMonad.Layout.Renamed (renamed, Rename(Replace))
 import XMonad.Layout.Spacing (spacing)
 import XMonad.Layout.LimitWindows (limitWindows, increaseLimit, decreaseLimit)
-import XMonad.Layout.WindowArranger (windowArrange, WindowArrangerMsg(..))
-import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), Toggle(..), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
-import qualified XMonad.Layout.ToggleLayouts as T (toggleLayouts, ToggleLayout(Toggle))
-
-    -- Layouts
-import XMonad.Layout.GridVariants (Grid(Grid))
+import XMonad.Layout.Grid
+import XMonad.Layout.Tabbed
+import XMonad.Layout.Gaps
+import XMonad.Layout.DragPane
+import XMonad.Actions.TagWindows
+import XMonad.Layout.MultiToggle
 import XMonad.Layout.NoBorders
 import XMonad.Layout.ComboP
-import XMonad.Layout.Tabbed
+import XMonad.Layout.Combo
 import XMonad.Layout.TwoPane
-import XMonad.Layout.Gaps
-import XMonad.Layout.Spacing
-import XMonad.Layout.Column
-import XMonad.Layout.MultiToggle
-import XMonad.Layout.MultiToggle.Instances
-import XMonad.Actions.DynamicWorkspaces
-import XMonad.Actions.CopyWindow(copy)
-import XMonad.Layout.BoringWindows
-import XMonad.Util.NamedWindows
-import XMonad.Util.WindowProperties
-import XMonad.Hooks.Minimize
-import XMonad.Layout.Hidden
-import XMonad.Actions.WithAll
-import XMonad.Layout.Drawer
-import Numeric (showHex, showIntAtBase)
-import XMonad.Actions.TagWindows
-import XMonad.Layout.ComboP
-
-    -- Prompts
-import XMonad.Prompt (defaultXPConfig, XPConfig(..), XPPosition(Top), Direction1D(..))
-
-    -- YAML
-import GHC.Generics
---import Data.Yaml
-
-    -- WALL
-import Codec.Picture
-import Codec.Picture.Types
-import System.IO.Unsafe
-import System.Random
-import System.Process
+import XMonad.Layout.IfMax
+import XMonad.Layout.BoringWindows (boringWindows, focusUp, markBoring)
 
 
--- Theme
-myFont = "inconsolata"
-myBorderWidth   = 6
-myColorBG       = "#1f1f1f"
-myColorBG1      = "#8e9eab"
-myColorBG2      = "#eef2f3"
-myColorWhite    = "#fdd6b5" -- Alt: seedColor
-myTabConfig = def {
-      activeColor = myColorWhite
-    , activeTextColor = myColorBG
-    , activeBorderColor = myColorWhite
-    , inactiveColor = myColorBG
-    , inactiveTextColor = myColorWhite
-    , inactiveBorderColor = myColorBG
-    , fontName = myFont
-}
+-- Prompt
+import XMonad.Prompt
+import XMonad.Prompt.Shell
+import XMonad.Prompt.Window
+import XMonad.Prompt.XMonad
+import XMonad.Prompt.ConfirmPrompt
 
--- Variables
-myModMask       = mod4Mask
-myTerminal      = "urxvt"
-myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(which spotify)"
+
+-- Local
+import Unsplash
+import Sidebar
+
+-- Mod key
+myModMask       = mod4Mask -- Super
+
+-- Defualt Apps
 myBrowser       = "google-chrome-stable"
-myLauncher      = "rofi -show run"
+myTerminal      = "urxvt"
 myLock          = "env XSECURELOCK_SAVER=saver_mplayer xsecurelock"
-myBG            = "/tmp/bg.png"
-myBgCmd         = "feh --bg-fill " ++ myBG
-myCompositor    = "pkill compton; compton"
-myNotes         =  myBrowser ++ " --app='https://keep.google.com/'"
-myChat          =  myBrowser ++ " --app='https://chat.google.com/'"
-myBar           =  "./.cabal/bin/xmobar ~/.xmonad/xmobar.hs"
+myMusic         = "LD_PRELOAD=/usr/lib/libcurl.so.3:~/.xmonad/spotifywm.so $(which spotify)"
+myCompositor    = "compton"
+myPWAs          = [
+                      ("chat.google.com", "chat.google.com")
+                    , ("keep.google.com", "keep.google.com")
+                    , ("tasks.google.com/embed/list/~default?fullWidth=1", "tasks.google.com")
+                ]
+myBar           =  "~/.cabal/bin/xmobar"
+myIRC           = "hexchat"
+
+-- Wallpaper
+myBgCmd         = "feh --bg-fill /tmp/bg.png"
+myKeyFile       = "~/.unsplash-key"
+
+-- dock
+myDockApps      = pwaList myBrowser myPWAs ++ [(myMusic, "spotify"), ("hexchat", "hexchat")]
+myDockTag       = "dock"
+myNormalTag     = "undocked"
+
+-- Misc
+myAutostart     = [myCompositor, myBar]
 myNext          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next"
 myPrev          = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous"
--- seedColor       = "#" ++ showHex mySeed "" ++ showHex 24 "" ++ showHex mySeed ""
+myPlayPause     = "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause"
 
+-- Theme
+myFont =  "xft:Inconsolata:size=9"
+myBorderWidth   = 6
+myColorDark       = "#1f1f1f"
+myColorGrey       = "#8e9eab"
+myColorLight      = "#f7ece2"
+myColorWhite      = "#fdd6b5"
 
--- Window Hacks
---dock = combineTwoP hrz bar Full tag
-bar = boringWindows (smartBorders $ tabbedBottom shrinkText myTabConfig)
-two = Tall 1 (1/50) (2/9)
-hrz = Mirror $ Tall 1 (1/50) (1/3)
-clss = ClassName "Spotify" `Or` Role "pop-up" `Or` ClassName "Gedit"
---tag = withTagged "dock"
-data BAR = BAR deriving (Read, Show, Eq, Typeable)
-instance Transformer BAR Window
-    where
-      transform _ x k = k (combineTwoP two bar x clss) (const x)
+-- workspaces
+myWorkspaces = ["⬤", "⬤ ⬤", "⬤ ⬤ ⬤", "⬤ ⬤ ⬤ ⬤"]
 
-data DIFF = DIFF deriving (Read, Show, Eq, Typeable)
-instance Transformer DIFF Window
-    where
-        transform _ x k = k (TwoPane (3/100) (1/2)) (const x)
-
--- MATH
-genSeed :: Int -> Int -> Int
-genSeed x y = unsafePerformIO (getStdRandom (randomR (x, y)))
-
--- WALL
-imageCreator :: String -> Int -> IO ()
-imageCreator path seed = writePng path $ generateImage pixelRenderer 250 seed
-   where pixelRenderer x y = PixelRGB8 (fromIntegral 250) (fromIntegral x) (fromIntegral y)
-
--- For key codes see:
+-- Keyboard shortcuts (for key codes see):
 -- http://hackage.haskell.org/package/xmonad-contrib-0.14/docs/XMonad-Util-EZConfig.html
 myKeys =
     [
     -- WM
-      ("M-M1-q",         io exitSuccess)
+      ("M-M1-q",         confirmPrompt myPromptConfig "exit" $ io exitSuccess)
     , ("M-l",            spawn myLock)
-    , ("M-p",            sequence_ [liftIO $ imageCreator myBG (genSeed 130 254), spawn myBgCmd])
-    , ("M-t",            withFocused (addTag "dock"))
-
+    
     -- Windows
     , ("M-q",            kill1)
     , ("M-z",            windows W.swapUp)
-    , ("M-<Tab>",        windows W.focusDown)
+    , ("M-S-z",          rotUnfocusedUp)
+    , ("M-<Tab>",        focusUpTagged myNormalTag)
+    , ("M-S-<Tab>",      focusUpTagged myDockTag)
+    , ("M-r",            spawnApps myDockApps)
     , ("M-a" ,           sendMessage NextLayout)
     , ("M-x",            sendMessage Shrink)
     , ("M-s",            sendMessage Expand)
     , ("M-w",            withFocused $ windows . W.sink)
+    , ("M-[",            nextWS)
+    , ("M-]",            prevWS)
+    , ("M-S-[",          sendMessage $ WN.Move L)
+    , ("M-S-]",          sendMessage $ WN.Move R)
+    , ("M-S-`",          withFocused $ toggleTag myDockTag myNormalTag)
+    -- http://hackage.haskell.org/package/xmonad-contrib-0.16/docs/XMonad-Actions-GridSelect.html
+    -- http://hackage.haskell.org/package/xmonad-contrib-0.16/docs/XMonad-Actions-Submap.html
+    --, ("M-S-p",        https://hackage.haskell.org/package/xmonad-contrib-0.13/docs/XMonad-Actions-WindowGo.html
     , ("M-,",            spawn myPrev)
     , ("M-.",            spawn myNext)
 
     -- Apps
     , ("M-<Return>",     spawn myTerminal)
     , ("M-S-<Return>",   spawn myBrowser)
-    , ("M-<Space>",      spawn myLauncher)
-    , ("M--",            spawn myMusic)
-    , ("M-=",            spawn myNotes)
-    , ("M-\\",           spawn myChat)
+    , ("M-<Space>",      shellPrompt myPromptConfig)
+    , ("M-M1-<Space>",   wallPrompt myPromptConfig myUnsplashConfig)
+    , ("M-S-<Space>",    windowPrompt myPromptConfig Bring allWindows)
 
     -- Windows
-    , ("M-`",            sendMessage $ Toggle BAR)
+    , ("M-`",            sequence_ [(sendMessage $ Toggle BAR), copyTagged myDockTag])
+    , ("M-h",            sendMessage $ Toggle HIDE)
     , ("M-d",            sendMessage $ Toggle DIFF)
     , ("M-f",            sendMessage $ Toggle NBFULL)
-    ]
+    ] 
 
--- workspaces
-myWorkspaces = ["1", "2"]
+-- Tabbed window config
+myTabConfig = def {
+      activeColor = myColorWhite
+    , activeTextColor = myColorDark
+    , activeBorderColor = myColorWhite
+    , inactiveColor = myColorDark
+    , inactiveTextColor = myColorLight
+    , inactiveBorderColor = myColorDark
+    , fontName = myFont
+    , decoHeight = 24
+}
+
+myUnsplashConfig = def { queries = ["mountains", "wilderness", "wallpaper"] }
+
+-- Xmobar config
+myBarConfig :: PP
+myBarConfig = def {   
+      ppCurrent          = xmobarColor myColorWhite ""
+    , ppVisible          = xmobarColor myColorWhite ""
+    , ppHidden           = const ""
+    , ppHiddenNoWindows  = const ""
+    , ppUrgent           = const ""
+    , ppTitle            = const ""
+    , ppLayout           = const ""
+}
+
+-- Launcher config
+myPromptConfig :: XPConfig
+myPromptConfig = 
+    def { 
+      font = myFont
+	, fgColor = myColorLight
+	, bgColor = myColorDark
+	, bgHLight    = myColorDark
+    , fgHLight    = myColorWhite
+    , promptBorderWidth = 0
+    , height = 100
+    , position = Bottom
+    , historySize = 20
+    , showCompletionOnTab = True
+    , historyFilter = deleteConsecutive
+    }
+
+myGridConfig colorizer = (buildDefaultGSConfig colorizer) {
+      gs_font = myFont
+    , gs_bordercolor = myColorWhite
+    , gs_cellheight = 50
+    , gs_cellwidth = 200
+}
 
 -- Hooks
+myTagHook = myManageHook <+> manageHook def
+
 myManageHook = composeAll
-    [ className =? "MPlayer"        --> doFloat
-    , className =? "Rofi"           --> doFloat
-    ]
+    [ className =? "MPlayer"         --> doFloat
+    , className =? "Rofi"            --> doFloat
+    , role =? "GtkFileChooserDialog" --> doSink
+    , tagWindowGroup dockApps [myDockTag]
+    , tagWindowGroup normalApps [myNormalTag]
+    ] where 
+        role = stringProperty "WM_WINDOW_ROLE"
+        doSink = ask >>= doF . W.sink
+        dockApps = resourceGroup dockClasses
+        normalApps = resourceExcludeGroup dockClasses
+        dockClasses = unzip myDockApps ^. _2
+
+-- Layouts
+myLayoutHook = let
+    l = (gap $ pad $ normal) ||| laptop
+    normal = IfMax 6 grid gold
+    laptop = IfMax 3 gold tabs 
+    grid = GridRatio 1  
+    tabs = noBorders $ tabbedBottomAlways shrinkText myTabConfig
+    gold = Tall 1 0.03 (toRational (2/(1 + sqrt 5 :: Double)))
+    gap =  gaps [(U,20), (D,20), (L,30), (R,30)]
+    pad = spacing 10
+    tag = Tagged myDockTag
+    layout = Tall 1 (1/50) (0/9)
+    in
+        WN.windowNavigation $
+        mkToggle1 BAR $
+        mkToggle1 HIDE $
+        mkToggle ( NBFULL ?? DIFF ?? EOT ) $ avoidStruts $ combineTwoP layout EmptyLayout l tag
+
+-- Custom Toggled Layouts
+data CustomTransformers = BAR | DIFF | FANCY | HIDE
+    deriving (Read, Show, Eq, Typeable)
+
+instance Transformer CustomTransformers Window where
+    transform BAR x k = let
+        layout = Tall 1 (1/50) (2/9)
+        dock = boringWindows $ avoidStruts $ noBorders $ tabbedBottomAlways shrinkText myTabConfig
+        tag = Tagged myDockTag
+        name = renamed [Replace myDockTag]
+        in k ( name $ combineTwoP layout dock x tag) (const x)
+    transform DIFF x k = let
+        layout = dragPane Vertical 0.05 0.5
+        diff = avoidStruts $ smartBorders $ tabbedBottomAlways shrinkText myTabConfig
+        in k (combineTwo layout diff diff) (const x)
+    transform HIDE x k = k (EmptyLayout) (\EmptyLayout -> x)
+
+
+-- PWA (Progressive web application) creator
+pwaThis :: String -> (String, String) -> (String, String)
+pwaThis browser (url, clss) = (
+    browser 
+    ++ " --password-store=gnome --profile-directory=Default --app=https://"
+    ++ url
+    , clss)
+
+-- Generate list of PWAs from list
+pwaList :: String -> [(String, String)] -> [(String, String)]
+pwaList browser pwa = map (pwaThis browser) pwa
+
 
 myStartupHook :: X ()
 myStartupHook = do
-    liftIO $ imageCreator myBG (genSeed 130 254)
-    spawn myCompositor
-    spawn myBar
-    spawn myBgCmd
+    setWallpaper myUnsplashConfig
+    sequence $ map spawnOnce myAutostart
+    spawnApps myDockApps
     spawn "unclutter &"
 
-
--- Layouts
-myLayoutHook =  avoidStruts $
-                mkToggle (single BAR) $
-                mkToggle (single NBFULL) $
-                mkToggle (single DIFF) (
-                    gapS grid |||
-                    gapS gold |||
-                    gapS vertical |||
-                    gapS tabs |||
-                    gapL tabs |||
-                    gapL grid)
-    where
-        full = smartBorders Full
-        grid = padS $ Grid (4/4)
-        vertical = padS $ Tall 3 (5/100) (50/100)
-        tabs = tabbed shrinkText myTabConfig
-        two = Tall 1 (1/50) (1/4)
-        drawer = simpleDrawer 0.001 0.001 clss
-        gold   = Tall 1 0.03 ratio
-        ratio = toRational (2/(1 + sqrt 5 :: Double))
-
-        gapS =  gaps [(U,20), (D,30), (L,20), (R,20)]
-        gapM = gaps [(U,60), (D,60), (L,30), (R,30)]
-        gapL = gaps [(U,160), (D,160), (L,160), (R,160)]
-        padS = spacing 10
-        padL = spacing 20
-
-main = xmonad  $ ewmh  $  azertyConfig
-    { modMask            = myModMask
+main = do
+    xmproc <- spawnPipe myBar
+    xmonad $ docks $ azertyConfig {
+      modMask            = myModMask
     , terminal           = myTerminal
-    , manageHook         = myManageHook
+    , manageHook         = myTagHook
+    , logHook            = dynamicLogWithPP myBarConfig { ppOutput = hPutStrLn xmproc}
     , layoutHook         = myLayoutHook
     , startupHook        = myStartupHook
     , workspaces         = myWorkspaces
     , borderWidth        = myBorderWidth
-    , normalBorderColor  = myColorBG
+    , normalBorderColor  = myColorDark
     , focusedBorderColor = myColorWhite
     } `additionalKeysP`    myKeys

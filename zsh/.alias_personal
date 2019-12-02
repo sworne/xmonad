@@ -7,6 +7,3 @@ alias pause="dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/
 alias play="pause"
 alias next="dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next"
 alias prev="dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous"
-function tlock() {
-  xsecurelock &; sleep $1 && pkill xsecurelock
-}

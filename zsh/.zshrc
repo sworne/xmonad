@@ -21,7 +21,11 @@ setopt PROMPT_SUBST     # allow funky stuff in prompt
 depth() {pwd | awk -F"/" '{print NF-1}'}
 color="blue"
 prompt="%(2~|.../%2~|%~) "
-RPROMPT="%T"
+if [ -f /sys/class/power_supply/BAT0/capacity ]; then
+    RPROMPT='%T | $(cat /sys/class/power_supply/BAT0/capacity)%%'
+else
+    RPROMPT="%T"
+fi
 
 ##
 # Key bindings

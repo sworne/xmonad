@@ -1,25 +1,26 @@
 [global]
-    font = Monospace 10
-    geometry = 0x16
+    font = Inconsolata 10
+    geometry = 500x200-40+50
     alignment = center
     indicate_hidden = yes
+    shrink = false
+    padding = 20
 
 [frame]
-    width = 4
+    width = 1
     color = "#fdd6b5"
 
 [urgency_low]
-    background = "#fdd6b5"
-    foreground = "#1f1f1f"
+    background = "#1f1f1f"
+    foreground = "#fdd6b5"
     timeout = 14
 
 [urgency_normal]
-    background = "#fdd6b5"
-    foreground = "#1f1f1f"
+    background = "#1f1f1f"
+    foreground = "#fdd6b5"
     timeout = 14
 
 [urgency_critical]
-    background = "#fdd6b5"
-    foreground = "#1f1f1f"
+    background = "#1f1f1f"
+    foreground = "#fdd6b5"
     timeout = 14
-

@@ -1,0 +1,9 @@
+language: haskell
+
+services:
+  - docker
+
+before_install:
+  - docker build -t xmonad:test .
+
+script: sudo docker run xmonad:test /bin/bash -c "xmonad --recompile"

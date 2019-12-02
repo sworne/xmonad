@@ -1,0 +1,25 @@
+Config { font              = "xft:Inconsolata:size=11, Symbola:pixelsize=15"
+       , additionalFonts   = [ "xft:Symbola:pixelsize=14" ]
+       , borderColor = "rgba(255, 255, 255, 0)"
+       , bgColor = "#1f1f1f"
+       , fgColor = "#fdd6b5"
+       , position = Top C 100
+       , allDesktops = True
+       , overrideRedirect = True
+       , alpha = 255
+       , iconOffset = 2
+       , lowerOnStart = True
+       , pickBroadest = False
+       , persistent = False
+       , hideOnStart = False
+       , iconRoot = "."
+       , commands = [ Run BatteryN ["BAT0"]  ["-t", "<acstatus>", "--", "-O", "<left>%", "-o", "<left>%"] 60 "bat"
+                    , Run DateZone "%H:%M %F" "en_US.UTF-8" "Australia/Sydney" "syd" 10
+                    , Run DateZone "%H:%M %F" "en_US.UTF-8" "America/Los_Angeles" "la" 10
+                    , Run DynNetwork [ "--template" , "⬘ <tx>kb/s  ⬙ <rx>kb/s"] 60
+                    , Run StdinReader
+                    ]
+       , sepChar = "%"
+       , alignSep = "}{"
+       , template = "  %StdinReader% }{ %syd% (SYD)  •  %la% (LA)  •  %bat%  •  "
+       }

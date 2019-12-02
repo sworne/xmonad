@@ -4,3 +4,12 @@
 /xmonad/.xmonad/xmonad.o
 /xmonad/.xmonad/xmonad.state
 /xmonad/.xmonad/xmonad-x86_64-linux
+/xmonad/.xmonad/prompt-history
+/xmonad/.xmonad/unsplash-key
+/xmonad/.xmonad/lib/Sidebar.hi
+/xmonad/.xmonad/lib/Sidebar.o
+/xmonad/.xmonad/lib/Unsplash.hi
+/xmonad/.xmonad/lib/Unsplash.o
+/xmonad/.xmonad/.cabal-sandbox
+/xmonad/.xmonad/cabal.sandbox.config
+/xmonad/.xmonad/dist
