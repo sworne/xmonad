@@ -12,12 +12,7 @@ UNSPLASH_MSG="Please create an application at $UNSPLASH and copy/paste the key h
 
 # Install packages
 function install_pkg() {
-  echo $TRAVIS
-  if [ $TRAVIS ]; then
-    echo "sudo apt-get install $CORE_PKGS"
-    sudo apt-get update
-    sudo apt-get install -y $CORE_PKGS
-  elif [ "$EUID" -ne 0 ]; then
+  if [ "$EUID" -ne 0 ]; then
     echo "sudo apt-get install $PKGS"
     sudo apt-get update
     sudo apt-get install -y $PKGS
