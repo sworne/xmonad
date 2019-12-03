@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 WDIR=$(pwd)
 PKGS="xmonad stow xsecurelock rofi feh rxvt-unicode-256color cabal-install fonts-inconsolata dunst git make g++ compton"
 DIRS="xmonad compton x rofi dunst xmobar"
