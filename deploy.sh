@@ -15,7 +15,7 @@ function install_pkg() {
   if [ $TRAVIS ]; then
     sudo apt-get update
     sudo apt-get install -y $CORE_PKGS
-  if [ "$EUID" -ne 0 ]; then
+  elif [ "$EUID" -ne 0 ]; then
     sudo apt-get update
     sudo apt-get install -y $PKGS
   else
