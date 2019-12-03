@@ -12,13 +12,17 @@ UNSPLASH_MSG="Please create an application at $UNSPLASH and copy/paste the key h
 
 # Install packages
 function install_pkg() {
+  echo $TRAVIS
   if [ $TRAVIS ]; then
+    echo "sudo apt-get install $CORE_PKGS"
     sudo apt-get update
     sudo apt-get install -y $CORE_PKGS
   elif [ "$EUID" -ne 0 ]; then
+    echo "sudo apt-get install $PKGS"
     sudo apt-get update
     sudo apt-get install -y $PKGS
   else
+    echo "sudo apt-get install $PKGS"
     apt-get update
     apt-get install -y $PKGS
   fi
@@ -71,7 +75,6 @@ function get_conf() {
 
 function interactive() {
   if $(get_conf "Install linux dependencies using apt-get? "); then
-    echo "sudo apt-get install $PKGS"
     install_pkg
   fi
   if $(get_conf "Install haskell dependencies using cabal? "); then
@@ -90,7 +93,6 @@ function interactive() {
 }
 
 function ci() {
-  echo "sudo apt-get install $PKGS"
   install_pkg
   echo "cabal update"
   update_xmonad
