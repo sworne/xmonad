@@ -1,4 +1,4 @@
 language: haskell
-os: linux
+dist: bionic
 install: bash ./deploy.sh --ci
 script: xmonad --recompile
