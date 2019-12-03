@@ -13,10 +13,10 @@ UNSPLASH_MSG="Please create an application at $UNSPLASH and copy/paste the key h
 function install_pkg() {
   if [ "$EUID" -ne 0 ]; then
     sudo apt-get update
-    sudo apt-get install -y $PKGS
+    sudo apt-get install --ignore-missing -y $PKGS
   else
     apt-get update
-    apt-get install -y $PKGS
+    apt-get install --ignore-missing -y $PKGS
   fi
 }
 
