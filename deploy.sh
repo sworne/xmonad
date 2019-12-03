@@ -97,8 +97,10 @@ function build() {
   sudo docker run xmonad:test /bin/bash -c "xmonad --recompile"
 }
 
-if [ "$1" == "--ci" ]; then
+if [ "$1" == "--docker" ]; then
   ci
+elif [ "$1" == "--travis" ]; then
+  sudo ci
 elif [ "$1" == "--test" ]; then
   build
 else
