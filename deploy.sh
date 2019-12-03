@@ -11,8 +11,13 @@ UNSPLASH_MSG="Please create an application at $UNSPLASH and copy/paste the key h
 
 # Install packages
 function install_pkg() {
-  apt-get update
-  apt-get install -y $PKGS
+  if [ "$EUID" -ne 0 ]; then
+    sudo apt-get update
+    sudo apt-get install -y $PKGS
+  else
+    apt-get update
+    apt-get install -y $PKGS
+  fi
 }
 
 # Update xmonad
@@ -97,10 +102,8 @@ function build() {
   sudo docker run xmonad:test /bin/bash -c "xmonad --recompile"
 }
 
-if [ "$1" == "--docker" ]; then
+if [ "$1" == "--ci" ]; then
   ci
-elif [ "$1" == "--travis" ]; then
-  sudo ci
 elif [ "$1" == "--test" ]; then
   build
 else
