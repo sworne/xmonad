@@ -61,16 +61,23 @@ function get_conf() {
 
 
 function interactive() {
-  echo "sudo apt-get install $PKGS"
-  install_pkg
-  echo "cabal update"
-  update_xmonad
-  echo "Download spotify window class mod"
-  get_spotifywm
-  echo $UNSPLASH_MSG
-  get_key
-  echo "Create symbolic links"
-  stow_files
+  if $(get_conf "Install linux dependencies using apt-get? "); then
+    echo "sudo apt-get install $PKGS"
+    install_pkg
+  fi
+  if $(get_conf "Install haskell dependencies using cabal? "); then
+    update_xmonad
+  fi
+  if $(get_conf "Download spotify window class library? "); then
+    get_spotifywm
+  fi
+  if $(get_conf "Use Unsplash for wallpapers? "); then
+    echo $UNSPLASH_MSG
+    get_key
+  fi
+  if $(get_conf "Create symbolic links? "); then
+    stow_files
+  fi
 }
 
 function ci() {
@@ -84,8 +91,16 @@ function ci() {
   stow_files
 }
 
-if [ $1 == "--ci" ]; then
+function build() {
+  cd $WDIR
+  sudo docker build -t xmonad:test .
+  sudo docker run xmonad:test /bin/bash -c "xmonad --recompile"
+}
+
+if [ "$1" == "--ci" ]; then
   ci
+elif [ "$1" == "--test" ]; then
+  build
 else
   interactive
 fi
